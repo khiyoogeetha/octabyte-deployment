@@ -53,6 +53,15 @@ jobs:
           format: 'table'
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
+        
+      - name: Check AWS secret presence
+        env:
+          AKI: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          SAK: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          [ -n "$AKI" ] || { echo "AWS_ACCESS_KEY_ID missing"; exit 1; }
+          [ -n "$SAK" ] || { echo "AWS_SECRET_ACCESS_KEY missing"; exit 1; }
+          echo "AWS secrets are present"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4

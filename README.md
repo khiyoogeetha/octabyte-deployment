@@ -1,80 +1,80 @@
-# Octa Byte DevOps Assignment
+# OctaByte DevOps Assignment: Flask CI/CD & AWS Infrastructure
 
-Welcome to my submission for the DevOps assignment. This repo contains a fully containerized Flask application backed by PostgreSQL, with infrastructure provisioned via Terraform and CI/CD handled through GitHub Actions.
+This repository contains a fully automated, production-ready DevOps implementation for a Python Flask application. It utilizes **Terraform** for Infrastructure as Code (IaC), **GitHub Actions** for CI/CD automation, and **AWS** for highly available cloud hosting.
 
-## Setting Up and Running the Infrastructure
+## Table of Contents
+- [Architecture Overview](#architecture-overview)
+- [How to Set Up and Run](#how-to-set-up-and-run)
+- [Security Considerations](#security-considerations)
+- [Cost Optimization Measures](#cost-optimization-measures)
+- [Backup & Secrets Strategy](#backup--secrets-strategy)
+- [Future Improvements](#future-improvements)
 
-To deploy this environment, you'll need AWS credentials and Terraform installed locally. Follw the following steps:
+---
 
-1. **Clone the Repo:**
-   ```bash
-   git clone <repo-url>
-   cd project1_flaskrapp
-   ```
+## Architecture Overview
 
-2. **Configure AWS Credentials:**
-   Ensure you have configured your AWS CLI or set the environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
+The infrastructure relies on a modern, serverless container approach to minimize operational overhead while maximizing scalability.
 
-3. **Provision the Terraform Backend:**
-   Before applying the main infrastructure, you need to create the S3 bucket used to store the Terraform state. We use Terraform's native S3 state locking so a DynamoDB table is no longer required.
-   ```bash
-   cd terraform/bootstrap
-   terraform init
-   terraform apply -auto-approve
-   cd ../..
-   ```
+- **Compute:** AWS ECS (Elastic Container Service) running on Fargate. No underlying EC2 instances are managed, abstracting OS maintenance.
+- **Networking:** A dedicated VPC with 2 Public Subnets (for the Application Load Balancer) and 2 Private Subnets (for the ECS Tasks and RDS Database).
+- **Database:** Amazon RDS (PostgreSQL).
+- **Monitoring & Logging:** CloudWatch Dashboards track Infra/App metrics. Centralized logging handles Application logs (via `awslogs` driver), System logs (via ECS Container Insights & Postgres exports), and Access logs (via dedicated S3 Bucket).
+- **CI/CD:** GitHub Actions with Trunk-Based Development. PRs are tested and auto-merged. Pushes to `master` trigger vulnerability scanning (Trivy), Docker builds, and zero-downtime rolling ECS deployments.
 
-4. **Deploy Infrastructure by Environment:**
-   This project is set up to deploy separate environments (`dev`, `staging`, `prod`) using a modular structure. 
-   Navigate to the specific environment directory to initialize and apply:
-   ```bash
-   # Deploy Dev Environment
-   cd terraform/environments/dev
-   terraform init
-   terraform apply -var="db_password=YourDevPassword123!"
+For detailed rationale on these technical choices, see [APPROACH.md](./APPROACH.md).
+For a breakdown of the CI/CD Pipeline, see [PIPELINE.md](./PIPELINE.md).
+For issues faced during implementation, see [CHALLENGES.md](./CHALLENGES.md).
 
-   # Deploy Staging Environment
-   cd ../staging
-   terraform init
-   terraform apply -var="db_password=YourStagingPassword123!"
+---
 
-   # Deploy Production Environment
-   cd ../prod
-   terraform init
-   terraform apply -var="db_password=YourProdPassword123!"
-   ```
-   Review the plan and type `yes`. Terraform will output the Application Load Balancer DNS name once it finishes.
+## How to Set Up and Run
 
-## CI/CD Pipeline & Environments
+### Prerequisites
+1. AWS CLI installed and configured.
+2. Terraform (`>=1.5.0`) installed.
+3. GitHub Repository Secrets configured:
+   - `PAT_TOKEN` (Classic Personal Access Token with `repo` scope).
+   - `SLACK_WEBHOOK` (For pipeline failure alerts).
+4. GitHub Environment Secrets (`staging` and `production` environments):
+   - `AWS_ACCESS_KEY_ID`
+   - `AWS_SECRET_ACCESS_KEY`
 
-The deployment is managed by GitHub Actions (`.github/workflows/deploy.yml`):
-1. **Build & Push**: Builds the Docker image, scans it with Trivy, and pushes it to an ECR repository.
-2. **Deploy to Staging**: Automatically updates the `staging` ECS cluster.
-3. **Deploy to Production (Manual Approval)**: Triggers only after staging completes. This uses GitHub Actions **Environments**. 
+### 1. Provision Infrastructure
+Navigate to the desired environment directory and apply the Terraform configuration:
+```bash
+cd terraform/environments/staging
+terraform init
+terraform plan
+terraform apply --auto-approve
+```
+*Note: You must provision the ECR repository via Terraform before the first CI/CD run can succeed.*
 
-**Important:** To test the manual approval gate, you must go to your GitHub Repository Settings > Environments. Create a new environment named `production`, check the "Required reviewers" box, and add yourself.
+### 2. Deploy the Application
+Once the infrastructure is up, simply commit your code to a feature branch and open a Pull Request against `master`. 
+1. `pr.yml` will run Python tests. If successful, it automatically merges the PR using your `PAT_TOKEN`.
+2. `deploy.yml` will trigger automatically, build the Docker image, run Trivy security scans, and deploy the new image to the ECS cluster.
 
-## Architecture Decisions & Challenges
-I've split out the detailed architectural rationale and the issues I ran into while building this out into separate files to keep this readme clean:
-- [Read the Architectural Approach](APPROACH.md)
-- [Read the Challenges & Resolutions](CHALLENGES.md)
+---
 
 ## Security Considerations
-
-Security was a primary focus when designing this stack:
-- **Private Subnets:** The RDS instance and the ECS Fargate tasks sit in private subnets. They cannot be reached directly from the internet.
-- **Strict Security Groups:** The ALB is the only component open to `0.0.0.0/0` on port 80. The ECS tasks only accept traffic from the ALB security group, and the RDS instance only accepts traffic from the ECS security group on port 5432.
-- **Secret Management (12-Factor App):** The application does not store secrets in the codebase. Database credentials and the Flask `SECRET_KEY` are passed via environment variables managed by Terraform and injected directly into the ECS Task Definition.
+- **Network Isolation:** ECS Tasks and the RDS database reside exclusively in Private Subnets. They are completely inaccessible from the public internet. The only entry point is via the Application Load Balancer sitting in the Public Subnets.
+- **Principle of Least Privilege:** Security Groups strictly restrict lateral movement. The RDS SG only accepts traffic from the ECS SG. The ECS SG only accepts traffic from the ALB SG.
+- **Vulnerability Scanning:** The `deploy.yml` pipeline utilizes Aqua Security's `Trivy` to scan the raw filesystem *and* the compiled Docker image for `HIGH` and `CRITICAL` vulnerabilities. The build fails if vulnerabilities are detected.
+- **Scoped Credentials:** AWS credentials are not stored globally. They are isolated inside GitHub **Environments** (`staging` vs `production`) to prevent lateral credential exposure.
 
 ## Cost Optimization Measures
+- **Compute Sizing:** ECS Tasks are right-sized using fractional CPU allocations (`256 CPU units` / `512 MB RAM` for staging, scalable for production) to avoid over-provisioning Fargate costs.
+- **Database Sizing:** The RDS instance utilizes `db.t3.micro` instance classes, ensuring it remains highly capable but sits well within the AWS Free Tier limitations where applicable.
+- **Storage Classes:** Utilizing standard GP3 storage instead of more expensive Provisioned IOPS.
+- **Nat Gateway:** Uses a `single_nat_gateway` configuration for development/staging environments to cut down on hourly NAT gateway fees.
 
-Running cloud infrastructure can get expensive fast, so I've optimized a few things:
-- **Free-tier Eligible Database:** I opted for a `db.t3.micro` instance class for the RDS database.
-- **Single NAT Gateway:** To allow ECS tasks in the private subnet to pull images from ECR, a NAT Gateway is required. Instead of deploying one per Availability Zone (which is best practice for production but costly), I deployed a single NAT gateway to save on hourly charges.
-- **Fargate Right-Sizing:** The ECS tasks are allocated minimal CPU (256) and Memory (512) since it's just a lightweight Python web service.
+## Backup & Secrets Strategy
+- **Backup Strategy:** The AWS RDS Terraform module is explicitly configured with a `backup_retention_period` of 7 days and a defined daily automated backup window. This ensures point-in-time recovery is fully automated.
+- **Secret Management:** Application secrets (like the Database Password and Flask `SECRET_KEY`) are dynamically injected into the container environment variables at runtime by ECS. The deployment pipeline pulls these from securely encrypted GitHub Secrets.
 
-## Backup Strategy
-
-The RDS module is configured to automatically handle database backups. 
-- **Automated Snapshots:** AWS takes daily automated snapshots during a specified backup window (`03:00-04:00` UTC).
-- **Retention:** Backups are retained for 7 days, allowing for easy point-in-time recovery if someone accidentally drops a table or messes up the data.
+## Future Improvements & Good Practices
+If this project were to scale significantly, the following extra code/architectural changes would be beneficial:
+1. **AWS Secrets Manager:** Rather than passing secrets via plain environment variables in the ECS Task Definition, we should reference ARNs from AWS Secrets Manager using the `secrets` block in the container definition for enhanced security.
+2. **Auto-Scaling:** Implement AWS Application Auto Scaling policies to dynamically increase the `desired_count` of ECS Fargate tasks based on CloudWatch CPU/Memory alarms.
+3. **WAF Integration:** Attach an AWS Web Application Firewall (WAF) to the Application Load Balancer to protect against common web exploits (e.g., SQL injection, XSS).

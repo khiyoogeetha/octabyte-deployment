@@ -25,4 +25,6 @@ resource "aws_db_instance" "postgres" {
 
   backup_retention_period = 7
   backup_window           = "03:00-04:00"
+
+  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
 }

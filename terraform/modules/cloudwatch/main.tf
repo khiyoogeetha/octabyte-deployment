@@ -28,9 +28,9 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx_errors" {
   alarm_description   = "Fires if ALB detects 10 or more 5xx errors in 1 minute"
 }
 
-# 2. Meaningful CloudWatch Dashboard
-resource "aws_cloudwatch_dashboard" "main" {
-  dashboard_name = "${var.project_name}-${var.environment}-dashboard"
+# 2. Infra CloudWatch Dashboard
+resource "aws_cloudwatch_dashboard" "infra" {
+  dashboard_name = "${var.project_name}-${var.environment}-infra-dashboard"
 
   dashboard_body = jsonencode({
     widgets = [
@@ -47,8 +47,8 @@ resource "aws_cloudwatch_dashboard" "main" {
           ]
           view    = "timeSeries"
           stacked = false
-          region  = "us-east-1" # Using static or variable region
-          title   = "ECS Service Resource Utilization"
+          region  = "us-east-1"
+          title   = "ECS Service Resource Utilization (Compute/Memory)"
         }
       },
       {
@@ -59,31 +59,58 @@ resource "aws_cloudwatch_dashboard" "main" {
         height = 6
         properties = {
           metrics = [
-            ["AWS/ApplicationELB", "RequestCount"],
-            [".", "HTTPCode_Target_5XX_Count"],
-            [".", "HTTPCode_Target_4XX_Count"]
-          ]
-          view    = "timeSeries"
-          stacked = false
-          region  = "us-east-1"
-          title   = "ALB Request & Error Rates"
-        }
-      },
-      {
-        type   = "metric"
-        x      = 0
-        y      = 6
-        width  = 12
-        height = 6
-        properties = {
-          metrics = [
-            ["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", "${var.project_name}-${var.environment}-db"],
+            ["AWS/RDS", "FreeStorageSpace", "DBInstanceIdentifier", "${var.project_name}-${var.environment}-db"],
             [".", "CPUUtilization", ".", "."]
           ]
           view    = "timeSeries"
           stacked = false
           region  = "us-east-1"
-          title   = "PostgreSQL DB Metrics"
+          title   = "PostgreSQL Infrastructure (Disk/CPU)"
+        }
+      }
+    ]
+  })
+}
+
+# 3. Application CloudWatch Dashboard
+resource "aws_cloudwatch_dashboard" "app" {
+  dashboard_name = "${var.project_name}-${var.environment}-app-dashboard"
+
+  dashboard_body = jsonencode({
+    widgets = [
+      {
+        type   = "metric"
+        x      = 0
+        y      = 0
+        width  = 12
+        height = 6
+        properties = {
+          metrics = [
+            ["AWS/ApplicationELB", "RequestCount"],
+            [".", "HTTPCode_Target_5XX_Count"],
+            [".", "HTTPCode_Target_4XX_Count"],
+            [".", "TargetResponseTime"]
+          ]
+          view    = "timeSeries"
+          stacked = false
+          region  = "us-east-1"
+          title   = "ALB Application Metrics (Traffic/Errors/Latency)"
+        }
+      },
+      {
+        type   = "metric"
+        x      = 12
+        y      = 0
+        width  = 12
+        height = 6
+        properties = {
+          metrics = [
+            ["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", "${var.project_name}-${var.environment}-db"]
+          ]
+          view    = "timeSeries"
+          stacked = false
+          region  = "us-east-1"
+          title   = "Application Database Usage"
         }
       }
     ]

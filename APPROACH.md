@@ -1,29 +1,25 @@
-# Architecture and Approach
+# Technical Approach & Architecture Rationale
 
-Hey team, here's a breakdown of the architectural choices and thought process behind the infrastructure and CI/CD setup for this DevOps assignment. I wanted to make sure we stuck to best practices while keeping things maintainable.
+This document outlines the high-level design decisions made during the infrastructure provisioning and deployment automation of the Flask application.
 
-## 1. Compute: ECS Fargate
-I decided to go with Amazon ECS using the Fargate launch type. 
-- **Why not EC2?** Managing EC2 instances (patching, scaling the underlying AMIs) adds a lot of operational overhead. Fargate is serverless compute for containers, so we only worry about the application layer.
-- **Scaling:** It's super easy to scale up the number of tasks behind the Application Load Balancer based on traffic.
-- **Integration:** It hooks up nicely with CloudWatch for logging out of the box (`awslogs` driver).
+## 1. Infrastructure as Code (Terraform Modularity)
+Instead of a monolithic Terraform state file, the infrastructure is heavily modularized (VPC, IAM, Security Groups, RDS, ECS, CloudWatch) and separated into distinct environment directories (`environments/staging` and `environments/prod`).
+- **Rationale:** This drastically reduces blast radius. Modularity allows us to reuse the exact same infrastructure definitions across multiple environments, ensuring staging is an identical replica of production, which is a core tenet of modern DevOps.
 
-## 2. Database: RDS PostgreSQL
-The assignment requested PostgreSQL. 
-- RDS handles automated backups, patching, and multi-AZ failovers (though I kept it single-AZ `db.t3.micro` for cost reasons during this assignment).
-- **Security:** The database is placed in private subnets. The only way to access it is through the ECS security group, keeping it completely isolated from the public internet.
+## 2. Compute Selection: AWS ECS Fargate
+Instead of provisioning traditional EC2 instances or maintaining an EKS cluster, the application is deployed on AWS ECS using the Fargate launch type.
+- **Rationale:** Fargate abstracts the underlying server management away. As a serverless compute engine, we do not need to worry about OS patching, AMI management, or cluster scaling at the EC2 level. This significantly reduces operational overhead. 
 
-## 3. Infrastructure as Code: Terraform Environments
-I split the Terraform code into modules (`vpc`, `security_groups`, `ecs`, `rds`, `cloudwatch`) and isolated configurations using `tfvars` files (`environments/dev.tfvars`, `staging.tfvars`, `prod.tfvars`).
-- Modularizing the code makes it way easier to read and reuse. If we ever want to spin up a new environment, we just pass in a new variables file.
-- Used an S3 backend with native state locking (`use_lockfile = true`) so state is stored securely and team members don't overwrite each other, without needing an extra DynamoDB table.
+## 3. Database & State Management
+The database is hosted on Amazon RDS (PostgreSQL).
+- **Automated Initialization:** The application logic was modified so that the database schema is automatically initialized upon container startup. This removes the need for manual database migrations or standalone Terraform DB initialization scripts.
+- **Backup Strategy:** Automated backups are explicitly enabled via Terraform with a `backup_retention_period` of 7 days and a defined daily backup window. This fulfills enterprise compliance requirements for disaster recovery without requiring custom cron jobs.
 
-## 4. CI/CD Pipeline: GitHub Actions
-GitHub actions is pretty much industry standard now for repositories hosted on GitHub.
-- **PR Workflow:** Runs `pytest` to make sure we don't break existing functionality. We enforce branch protection so code can't merge to `main` if tests fail.
-- **Multi-Stage Deploy Workflow:** Triggers on merge to `main`. It builds the docker image, runs a Trivy vulnerability scan to catch any glaring CVEs, and pushes to a single ECR repository.
-- **Manual Approvals:** After deploying the new image to the `staging` ECS cluster, the pipeline pauses. It uses GitHub Actions **Environments** to require a manual approval before rolling out the image to the `production` ECS cluster.
+## 4. Centralized Logging
+- **Application Logs:** Pushed directly from the Docker container `stdout/stderr` to CloudWatch Logs using the native `awslogs` log driver configured in the ECS Task Definition.
+- **System Logs:** Fargate manages the underlying OS, so traditional `/var/log/syslog` metrics do not apply. However, system-level metrics and container health are captured via **ECS Container Insights**, which we explicitly enabled at the cluster level. Furthermore, RDS PostgreSQL system logs and upgrade logs are directly exported to CloudWatch.
+- **Access Logs:** Application Load Balancer access logs are enabled and routed to a dedicated S3 Bucket governed by strict IAM Bucket Policies.
 
-## 5. Twelve-Factor App Compliance
-The original `flaskr` app used an `instance/config.py` file to load database secrets. This is generally an anti-pattern for containerized apps.
-I refactored the app to pull configuration directly from `os.environ`. The Terraform ECS module injects the RDS endpoint, username, and password into the container at runtime. This keeps secrets out of the codebase completely.
+## 5. Deployment Trigger Security
+Instead of using the default `GITHUB_TOKEN` to merge Pull Requests, a classic Personal Access Token (`PAT_TOKEN`) is utilized.
+- **Rationale:** GitHub explicitly blocks actions triggered by the default `GITHUB_TOKEN` from triggering downstream workflows to prevent infinite recursion loops. Using a PAT ensures that our automated PR merge cleanly triggers the `deploy.yml` pipeline.

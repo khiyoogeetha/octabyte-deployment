@@ -15,6 +15,3 @@ The original `flaskr` app was heavily tied to SQLite/MySQL syntax (using `AUTO_I
 - **Challenge:** Wanted to add a vulnerability scanner but needed one that is fast and reliable in GitHub Actions without needing an external SaaS subscription.
 - **Resolution:** Decided to use `Trivy` from Aqua Security. It runs quickly right in the pipeline, scans the built image, and I configured it to only fail the build if it finds `HIGH` or `CRITICAL` vulnerabilities so we aren't blocked by minor issues.
 
-## 4. NAT Gateway Costs
-- **Challenge:** Putting ECS tasks in private subnets means they need a NAT Gateway to pull the Docker images from ECR (or we need to set up VPC endpoints).
-- **Resolution:** I opted for a single NAT gateway in the VPC module rather than one per availability zone. While not highly available for production, it significantly cuts down on AWS bill costs for this assignment. If this was a true prod environment, I'd deploy one NAT per AZ.

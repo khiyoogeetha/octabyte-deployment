@@ -21,6 +21,10 @@ def create_app(test_config=None):
     def hello():
         return "Hello, World!"
 
+    @app.route("/health")
+    def health():
+        return "OK", 200
+
     # register the database commands
     from . import db
 

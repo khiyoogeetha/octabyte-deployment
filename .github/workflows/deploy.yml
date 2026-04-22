@@ -40,6 +40,7 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
+    environment: staging
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -166,6 +167,7 @@ jobs:
     needs: [test, build, deploy-staging, deploy-production]
     if: failure()
     runs-on: ubuntu-latest
+    environment: staging
     steps:
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2

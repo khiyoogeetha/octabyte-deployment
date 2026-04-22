@@ -51,6 +51,7 @@ jobs:
   notify:
     needs: [test, automerge]
     runs-on: ubuntu-latest
+    environment: staging
     if: failure()
     steps:
       - name: Slack Notification

@@ -24,4 +24,4 @@ USER appuser
 EXPOSE 5000
 
 # Run the app with gunicorn
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "flaskr:create_app()"]!
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "flaskr:create_app()"]

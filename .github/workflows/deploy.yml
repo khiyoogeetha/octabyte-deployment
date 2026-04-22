@@ -3,11 +3,11 @@ name: Build and Deploy
 on:
   push:
     branches:
-      - main
+      - master
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: devops-assignment-repo
+  ECR_REPOSITORY: octa-byte-app-repo
 
 jobs:
   build:
@@ -50,9 +50,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     env:
-      ECS_SERVICE: devops-assignment-staging-service
-      ECS_CLUSTER: devops-assignment-staging-cluster
-      ECS_TASK_DEFINITION: devops-assignment-staging-task
+      ECS_SERVICE: octa-byte-app-staging-service
+      ECS_CLUSTER: octa-byte-app-staging-cluster
+      ECS_TASK_DEFINITION: octa-byte-app-staging-task
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -90,9 +90,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     env:
-      ECS_SERVICE: devops-assignment-prod-service
-      ECS_CLUSTER: devops-assignment-prod-cluster
-      ECS_TASK_DEFINITION: devops-assignment-prod-task
+      ECS_SERVICE: octa-byte-app-prod-service
+      ECS_CLUSTER: octa-byte-app-prod-cluster
+      ECS_TASK_DEFINITION: octa-byte-app-prod-task
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4

@@ -1,6 +1,7 @@
 # Octa Byte DevOps Assignment
 
 Welcome to my submission for the DevOps assignment. This repo contains a fully containerized Flask application backed by PostgreSQL, with infrastructure provisioned via Terraform and CI/CD handled through GitHub Actions.
+Note:Checkout main branch with all latest updates.
 
 ## Setting Up and Running the Infrastructure
 

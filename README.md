@@ -4,7 +4,7 @@ Welcome to my submission for the DevOps assignment. This repo contains a fully c
 
 ## Setting Up and Running the Infrastructure
 
-To deploy this environment, you'll need AWS credentials and Terraform installed locally.
+To deploy this environment, you'll need AWS credentials and Terraform installed locally. Follw the following steps:
 
 1. **Clone the Repo:**
    ```bash

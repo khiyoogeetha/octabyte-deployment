@@ -32,6 +32,8 @@ The CI/CD process is split into two cascading workflows to enforce proper author
   - *Note: In a true production environment, this step would require a manual approval gate configured via GitHub Environments.*<img width="947" height="410" alt="image" src="https://github.com/user-attachments/assets/da91b818-ada3-455c-9a47-f2a46f478eca" />
 
 - **notify:** Sends a Slack alert to the engineering team if any stage of the deployment fails.
+<img width="950" height="411" alt="image" src="https://github.com/user-attachments/assets/1ef1d4a2-f00f-43b2-8927-673827c797b5" />
+
 
 ## Security Integrations
 - **Environment Secrets:** AWS Credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) and Slack Webhooks are stored securely in GitHub Environments (`staging` and `production`) rather than globally, enforcing the principle of least privilege.

@@ -22,7 +22,3 @@ During the implementation of the infrastructure and CI/CD pipelines, several tec
 **Root Cause:** The original Flask tutorial application expects a user to run `flask init-db` locally. In an automated ECS environment, there is no manual intervention phase.
 **Resolution:** Refactored the `schema.sql` script to replace destructive `DROP TABLE` commands with safe `CREATE TABLE IF NOT EXISTS` commands. Modified the Dockerfile `CMD` instruction to run `flask --app flaskr init-db` dynamically right before starting the Gunicorn web server, ensuring full automation without data loss.
 
-## 5. Security Group Port Mismatch
-**Issue:** ECS instances were inaccessible from the Load Balancer.
-**Root Cause:** The ECS Security Group (`ecs-sg`) had an ingress rule expecting traffic on port `3000`, while the Flask application/Gunicorn was explicitly configured to run on port `5000`.
-**Resolution:** Updated the Terraform security group definitions to properly map port `5000` ingress from the ALB security group.

@@ -116,7 +116,7 @@ def update(id):
 @bp.route("/<int:id>/delete", methods=("POST",))
 @login_required
 def delete(id):
-    """Delete a post.
+    """Delete a post.Post will be deleted
 
     Ensures that the post exists and that the logged in user is the
     author of the post.

@@ -1,6 +1,6 @@
 # Octa Byte DevOps Assignment
 
-Welcome to my submission for the DevOps assignment. This repo contains a fully containerized Flask application backed by PostgreSQL, with infrastructure provisioned via Terraform and CI/CD handled through GitHub Actions.
+Welcome to my submission for the DevOps assignment. This repo contains a fully containerized Flask application backed by MySQL, with infrastructure provisioned via Terraform and CI/CD handled through GitHub Actions.
 
 ## Setting Up and Running the Infrastructure
 
@@ -24,20 +24,24 @@ To deploy this environment yourself, you'll need AWS credentials and Terraform i
    cd ../..
    ```
 
-4. **Initialize Main Terraform:**
+4. **Deploy Infrastructure by Environment:**
+   This project is set up to deploy separate environments (`dev`, `staging`, `prod`) using a modular structure. 
+   Navigate to the specific environment directory to initialize and apply:
    ```bash
-   cd terraform
+   # Deploy Dev Environment
+   cd terraform/environments/dev
    terraform init
-   ```
+   terraform apply -var="db_password=YourDevPassword123!"
 
-5. **Apply Infrastructure by Environment:**
-   This project is set up to deploy separate environments (`dev`, `staging`, `prod`). Use the `-var-file` flag to deploy a specific stack.
-   ```bash
-   # Deploy Staging
-   terraform apply -var-file="environments/staging.tfvars" -var="db_password=YourSecurePassword123!"
+   # Deploy Staging Environment
+   cd ../staging
+   terraform init
+   terraform apply -var="db_password=YourStagingPassword123!"
 
-   # Deploy Production
-   terraform apply -var-file="environments/prod.tfvars" -var="db_password=YourProdPassword123!"
+   # Deploy Production Environment
+   cd ../prod
+   terraform init
+   terraform apply -var="db_password=YourProdPassword123!"
    ```
    Review the plan and type `yes`. Terraform will output the Application Load Balancer DNS name once it finishes.
 
@@ -59,7 +63,7 @@ I've split out the detailed architectural rationale and the issues I ran into wh
 
 Security was a primary focus when designing this stack:
 - **Private Subnets:** The RDS instance and the ECS Fargate tasks sit in private subnets. They cannot be reached directly from the internet.
-- **Strict Security Groups:** The ALB is the only component open to `0.0.0.0/0` on port 80. The ECS tasks only accept traffic from the ALB security group, and the RDS instance only accepts traffic from the ECS security group on port 5432.
+- **Strict Security Groups:** The ALB is the only component open to `0.0.0.0/0` on port 80. The ECS tasks only accept traffic from the ALB security group, and the RDS instance only accepts traffic from the ECS security group on port 3306.
 - **Secret Management (12-Factor App):** The application does not store secrets in the codebase. Database credentials and the Flask `SECRET_KEY` are passed via environment variables managed by Terraform and injected directly into the ECS Task Definition.
 
 ## Cost Optimization Measures

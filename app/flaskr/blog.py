@@ -119,7 +119,7 @@ def delete(id):
     """Delete a post.Post will be deleted
 
     Ensures that the post exists and that the logged in user is the
-    author of the post.
+    author of the post.....
     """
     get_post(id)
     db = get_db()

@@ -29,7 +29,8 @@ The CI/CD process is split into two cascading workflows to enforce proper author
   - Deploys the updated task to the `staging` ECS Fargate cluster.
 - **deploy-production:**
   - Mirrors the staging process but targets the `production` ECS Fargate cluster.
-  - *Note: In a true production environment, this step would require a manual approval gate configured via GitHub Environments.*
+  - *Note: In a true production environment, this step would require a manual approval gate configured via GitHub Environments.*<img width="947" height="410" alt="image" src="https://github.com/user-attachments/assets/da91b818-ada3-455c-9a47-f2a46f478eca" />
+
 - **notify:** Sends a Slack alert to the engineering team if any stage of the deployment fails.
 
 ## Security Integrations

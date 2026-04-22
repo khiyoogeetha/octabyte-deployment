@@ -32,6 +32,20 @@ jobs:
         run: |
           pytest tests/ -v
 
+  automerge:
+    needs: test
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Automatically merge the PR
+        env:
+          # A Personal Access Token (PAT) must be used here so that the resulting merge
+          # triggers the deploy.yml workflow. Default GITHUB_TOKEN prevents workflow recursion.
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: gh pr merge ${{ github.event.pull_request.number }} --merge
+
   notify:
     needs: test
     runs-on: ubuntu-latest

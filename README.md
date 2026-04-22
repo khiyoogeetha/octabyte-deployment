@@ -63,6 +63,9 @@ Once the infrastructure is up, simply commit your code to a feature branch and o
 1. `pr.yml` will run Python tests. If successful, it automatically merges the PR using your `PAT_TOKEN`.
 2. `deploy.yml` will trigger automatically, build the Docker image, run Trivy security scans, and deploy the new image to the ECS cluster.
 
+   <img width="790" height="302" alt="image" src="https://github.com/user-attachments/assets/bb3c294c-4d0b-4832-ad14-ad3d9bf97c4f" />
+
+
 ---
 
 ## Security Considerations

@@ -41,6 +41,14 @@ For issues faced during implementation, see [CHALLENGES.md](./CHALLENGES.md).
    - `AWS_SECRET_ACCESS_KEY`
 
 ### 1. Provision Infrastructure
+Initialize backend by navigating to bootstrap directory and apply the Terraform configuration::
+```bash
+cd terraform/bootstrap
+terraform init
+terraform plan
+terraform apply --auto-approve
+```
+
 Navigate to the desired environment directory and apply the Terraform configuration:
 ```bash
 cd terraform/environments/staging

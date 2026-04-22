@@ -42,10 +42,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Automatically merge the PR
+      - name: Automatically merge the PR and Trigger Deploy
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge ${{ github.event.pull_request.number }} --merge
+        run: |
+          gh pr merge ${{ github.event.pull_request.number }} --merge
+          gh workflow run deploy.yml --ref ${{ github.base_ref }}
 
   notify:
     needs: [test, automerge]

@@ -1,6 +1,6 @@
 # Octa Byte DevOps Assignment
 
-Welcome to my submission for the DevOps assignment. This repo contains a fully containerized Flask application backed by MySQL, with infrastructure provisioned via Terraform and CI/CD handled through GitHub Actions.
+Welcome to my submission for the DevOps assignment. This repo contains a fully containerized Flask application backed by PostgreSQL, with infrastructure provisioned via Terraform and CI/CD handled through GitHub Actions.
 
 ## Setting Up and Running the Infrastructure
 
@@ -63,7 +63,7 @@ I've split out the detailed architectural rationale and the issues I ran into wh
 
 Security was a primary focus when designing this stack:
 - **Private Subnets:** The RDS instance and the ECS Fargate tasks sit in private subnets. They cannot be reached directly from the internet.
-- **Strict Security Groups:** The ALB is the only component open to `0.0.0.0/0` on port 80. The ECS tasks only accept traffic from the ALB security group, and the RDS instance only accepts traffic from the ECS security group on port 3306.
+- **Strict Security Groups:** The ALB is the only component open to `0.0.0.0/0` on port 80. The ECS tasks only accept traffic from the ALB security group, and the RDS instance only accepts traffic from the ECS security group on port 5432.
 - **Secret Management (12-Factor App):** The application does not store secrets in the codebase. Database credentials and the Flask `SECRET_KEY` are passed via environment variables managed by Terraform and injected directly into the ECS Task Definition.
 
 ## Cost Optimization Measures

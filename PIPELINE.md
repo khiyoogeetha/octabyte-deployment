@@ -12,6 +12,8 @@ The CI/CD process is split into two cascading workflows to enforce proper author
 - **test:** Runs the Python `pytest` suite and checks code health.
 - **automerge:** If tests pass, uses the GitHub CLI (`gh pr merge`) to automatically merge the Pull Request. This job uses a highly privileged Personal Access Token (`PAT_TOKEN`) to bypass branch protection rules and ensure that the merge event can trigger downstream deployment workflows.
 - **notify:** Sends a Slack alert via Webhook if any job fails.
+<img width="950" height="442" alt="image" src="https://github.com/user-attachments/assets/f73a242e-a956-462d-9a60-c31ce21b0fb1" />
+
 
 ### 2. Deployment Workflow (`deploy.yml`)
 **Trigger:** Triggered automatically by a `push` to `master` (which occurs immediately after `pr.yml` successfully merges the code) or via manual `workflow_dispatch`.
@@ -27,6 +29,8 @@ The CI/CD process is split into two cascading workflows to enforce proper author
   - Pulls the latest ECS Task Definition.
   - Injects the newly built Docker image hash.
   - Deploys the updated task to the `staging` ECS Fargate cluster.
+  <img width="924" height="430" alt="image" src="https://github.com/user-attachments/assets/cc87991a-af05-4d38-851d-e686213402a6" />
+
 - **deploy-production:**
   - Mirrors the staging process but targets the `production` ECS Fargate cluster.
   - *Note: In a true production environment, this step would require a manual approval gate configured via GitHub Environments.*<img width="947" height="410" alt="image" src="https://github.com/user-attachments/assets/da91b818-ada3-455c-9a47-f2a46f478eca" />

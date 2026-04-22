@@ -4,7 +4,7 @@ Welcome to my submission for the DevOps assignment. This repo contains a fully c
 
 ## Setting Up and Running the Infrastructure
 
-To deploy this environment yourself, you'll need AWS credentials and Terraform installed locally.
+To deploy this environment, you'll need AWS credentials and Terraform installed locally.
 
 1. **Clone the Repo:**
    ```bash
@@ -24,20 +24,24 @@ To deploy this environment yourself, you'll need AWS credentials and Terraform i
    cd ../..
    ```
 
-4. **Initialize Main Terraform:**
+4. **Deploy Infrastructure by Environment:**
+   This project is set up to deploy separate environments (`dev`, `staging`, `prod`) using a modular structure. 
+   Navigate to the specific environment directory to initialize and apply:
    ```bash
-   cd terraform
+   # Deploy Dev Environment
+   cd terraform/environments/dev
    terraform init
-   ```
+   terraform apply -var="db_password=YourDevPassword123!"
 
-5. **Apply Infrastructure by Environment:**
-   This project is set up to deploy separate environments (`dev`, `staging`, `prod`). Use the `-var-file` flag to deploy a specific stack.
-   ```bash
-   # Deploy Staging
-   terraform apply -var-file="environments/staging.tfvars" -var="db_password=YourSecurePassword123!"
+   # Deploy Staging Environment
+   cd ../staging
+   terraform init
+   terraform apply -var="db_password=YourStagingPassword123!"
 
-   # Deploy Production
-   terraform apply -var-file="environments/prod.tfvars" -var="db_password=YourProdPassword123!"
+   # Deploy Production Environment
+   cd ../prod
+   terraform init
+   terraform apply -var="db_password=YourProdPassword123!"
    ```
    Review the plan and type `yes`. Terraform will output the Application Load Balancer DNS name once it finishes.
 

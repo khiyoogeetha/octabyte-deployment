@@ -19,13 +19,43 @@ jobs:
           python-version: '3.11'
           
       - name: Install dependencies
+        working-directory: ./app
         run: |
           python -m pip install --upgrade pip
           pip install flit pytest
           flit install --deps develop
           
       - name: Run Tests
+        working-directory: ./app
         env:
           SECRET_KEY: test-key
         run: |
           pytest tests/ -v
+
+  automerge:
+    needs: test
+    runs-on: ubuntu-latest
+    if: success()
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Automatically merge the PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge ${{ github.event.pull_request.number }} --merge
+
+  notify:
+    needs: test
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: '#ff0000'
+          SLACK_MESSAGE: 'Pull Request tests failed :x:'
+          SLACK_TITLE: PR Build Failure

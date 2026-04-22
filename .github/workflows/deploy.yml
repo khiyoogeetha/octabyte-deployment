@@ -4,17 +4,53 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: devops-assignment-repo
+  ECR_REPOSITORY: octa-byte-app-repo
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        working-directory: ./app
+        run: |
+          python -m pip install --upgrade pip
+          pip install flit pytest
+          flit install --deps develop
+          
+      - name: Run Tests
+        working-directory: ./app
+        env:
+          SECRET_KEY: test-key
+        run: |
+          pytest tests/ -v
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner in fs mode
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: './app'
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -50,9 +86,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     env:
-      ECS_SERVICE: devops-assignment-staging-service
-      ECS_CLUSTER: devops-assignment-staging-cluster
-      ECS_TASK_DEFINITION: devops-assignment-staging-task
+      ECS_SERVICE: octa-byte-app-staging-service
+      ECS_CLUSTER: octa-byte-app-staging-cluster
+      ECS_TASK_DEFINITION: octa-byte-app-staging-task
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -90,9 +126,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     env:
-      ECS_SERVICE: devops-assignment-prod-service
-      ECS_CLUSTER: devops-assignment-prod-cluster
-      ECS_TASK_DEFINITION: devops-assignment-prod-task
+      ECS_SERVICE: octa-byte-app-prod-service
+      ECS_CLUSTER: octa-byte-app-prod-cluster
+      ECS_TASK_DEFINITION: octa-byte-app-prod-task
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -124,3 +160,16 @@ jobs:
           service: ${{ env.ECS_SERVICE }}
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
+
+  notify:
+    needs: [test, build, deploy-staging, deploy-production]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: '#ff0000'
+          SLACK_MESSAGE: 'Deployment pipeline failed :x:'
+          SLACK_TITLE: Deployment Failure
